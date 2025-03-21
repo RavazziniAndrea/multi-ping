@@ -1,16 +1,24 @@
 extern crate getopts;
 use getopts::Options;
 use std::error::Error;
+use std::net::Ipv4Addr;
+use std::str::FromStr;
 use std::{env, panic};
+
+#[derive(Debug)]
+struct Network {
+    net: Ipv4Addr,
+    range: i32,
+}
 
 fn print_help() {
     println!("Sarebbe bello dai");
 }
 
-fn get_subnet_values(subnet: String) -> Result<(String, String), Box<dyn Error>> {
+fn get_subnet_values(subnet: String) -> Result<Network, Box<dyn Error>> {
     let slash_idx = match subnet.find("/") {
         Some(n) => n,
-        None => return Err("missing /")?,
+        None => return Err("missing /".into()),
     };
 
     let mut network = subnet;
@@ -19,7 +27,22 @@ fn get_subnet_values(subnet: String) -> Result<(String, String), Box<dyn Error>>
         .trim_start_matches("/")
         .to_string();
 
-    Ok((network, range))
+    let net_addr = match Ipv4Addr::from_str(&network) {
+        Ok(net) => net,
+        Err(_) => {
+            return Err("Cannot parse ip address".into());
+        }
+    };
+
+    let range = match range.parse::<i32>() {
+        Ok(r) => r,
+        Err(_) => return Err("Cannot parse range".into()),
+    };
+
+    Ok(Network {
+        net: net_addr,
+        range: range,
+    })
 }
 
 fn main() {
@@ -46,6 +69,13 @@ fn main() {
         None => panic!("Range panic"),
     };
 
-    let (network, range) = get_subnet_values(subnet).unwrap();
-    println!("{network} -- {range}");
+    let net_data = match get_subnet_values(subnet) {
+        Ok(values) => values,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return;
+        }
+    };
+
+    println!("{:?} -- {:?}", net_data.net, net_data.range);
 }
