@@ -1,3 +1,3 @@
-#ping-rs
+#multi-ping
 
-Simple utility to find hosts in a network :)
+Simple rust utility to find hosts in a network :)
