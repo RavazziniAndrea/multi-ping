@@ -1,8 +1,9 @@
 extern crate getopts;
 use getopts::Options;
 use std::error::Error;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
+use std::time::Duration;
 use std::{env, panic};
 
 /**
@@ -15,7 +16,7 @@ use std::{env, panic};
 
 #[derive(Debug)]
 struct Network {
-    net: Ipv4Addr,
+    net: IpAddr,
     range: u8,
 }
 
@@ -46,7 +47,7 @@ fn get_subnet_values(subnet: String) -> Result<Network, Box<dyn Error>> {
     };
 
     let net_addr = match Ipv4Addr::from_str(&network) {
-        Ok(net) => net,
+        Ok(net) => IpAddr::from(net),
         Err(_) => {
             return Err("Cannot parse ip address".into());
         }
@@ -62,7 +63,8 @@ fn get_hosts(range: u8) -> u32 {
     1u32 << (32 - range)
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
     opts.optflag("h", "help", "print help");
@@ -97,4 +99,21 @@ fn main() {
     println!("{:?} -- {:?}", net_data.net, net_data.range);
     let hosts = get_hosts(net_data.range);
     println!("{hosts}");
+
+    for i in [0..hosts] {
+        tokio::spawn(async move {
+            let x = match ping::ping(
+                IpAddr::from_str("127.0.0.1").unwrap(), //TEST
+                Some(Duration::from_secs(2)),
+                None,
+                None,
+                None,
+                None,
+            ) {
+                Ok(r) => r,
+                Err(e) => panic!("Error: {e}"),
+            };
+            println!("OK");
+        });
+    }
 }
