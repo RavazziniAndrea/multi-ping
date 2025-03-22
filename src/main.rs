@@ -5,10 +5,18 @@ use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::{env, panic};
 
+/**
+ * TODO
+ * - Get all possible addresses by range
+ * - Ping them all
+ * - Show output
+ *
+ */
+
 #[derive(Debug)]
 struct Network {
     net: Ipv4Addr,
-    range: i32,
+    range: u8,
 }
 
 fn print_help() {
@@ -27,6 +35,16 @@ fn get_subnet_values(subnet: String) -> Result<Network, Box<dyn Error>> {
         .trim_start_matches("/")
         .to_string();
 
+    let range = match range.parse::<u8>() {
+        Ok(r) => {
+            if r > 32 || r < 8 {
+                return Err("Range not in boundaries".into());
+            }
+            r
+        }
+        Err(_) => return Err("Cannot parse range".into()),
+    };
+
     let net_addr = match Ipv4Addr::from_str(&network) {
         Ok(net) => net,
         Err(_) => {
@@ -34,15 +52,14 @@ fn get_subnet_values(subnet: String) -> Result<Network, Box<dyn Error>> {
         }
     };
 
-    let range = match range.parse::<i32>() {
-        Ok(r) => r,
-        Err(_) => return Err("Cannot parse range".into()),
-    };
-
     Ok(Network {
         net: net_addr,
         range: range,
     })
+}
+
+fn get_hosts(range: u8) -> u32 {
+    1u32 << (32 - range)
 }
 
 fn main() {
@@ -78,4 +95,6 @@ fn main() {
     };
 
     println!("{:?} -- {:?}", net_data.net, net_data.range);
+    let hosts = get_hosts(net_data.range);
+    println!("{hosts}");
 }
